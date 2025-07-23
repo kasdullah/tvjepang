@@ -13,10 +13,13 @@ const video = document.getElementById('video');
     const channelList = document.getElementById('channelList');
     const infoChannel = document.getElementById('infoChannel');
     const infoClock = document.getElementById('infoClock');
+    const resetBtn = document.getElementById('resetBtn');
 
     let previousVolume = 0.5;
     let hls = new Hls();
     let channels = [];
+    let currentChannelUrl = '';
+    let currentChannelName = '';
 
     function updateTokyoClock() {
       const now = new Date();
@@ -163,6 +166,12 @@ const video = document.getElementById('video');
             document.querySelector('.icon-mute').style.display = 'none';
           }
         }
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          if (currentChannelUrl && currentChannelName) {
+            playStream(currentChannelUrl, currentChannelName);
+          }
+        }
       }
     });
 
@@ -199,6 +208,8 @@ const video = document.getElementById('video');
     }
 
     function playStream(url, name = '') {
+      currentChannelUrl = url;
+      currentChannelName = name;
       video.classList.add('buffering');
       // Reset bar biru dan posisi video ke awal sebelum load
       video.pause();
@@ -258,6 +269,12 @@ const video = document.getElementById('video');
       searchInput.value = '';
       clearBtn.style.display = 'none';
       updateChannelList(channels);
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if (currentChannelUrl && currentChannelName) {
+        playStream(currentChannelUrl, currentChannelName);
+      }
     });
 
 
