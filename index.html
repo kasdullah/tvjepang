@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Streaming TV Jepang</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>📺 Streaming TV Jepang</h1>
+
+  <div class="combo-wrapper">
+    <div class="search-wrapper">
+      <input type="text" id="searchInput" spellcheck="false" placeholder="🔍 Cari nama channel...">
+      <button class="clear-btn" id="clearBtn" title="Hapus">x</button>
+    </div>
+    <div id="channelList"></div>
+  </div>
+
+  <div class="media-wrapper">
+    <div class="info-bar">
+      <div id="infoChannel">Channel: -</div>
+      <div id="infoClock">Jam Tokyo: -</div>
+    </div>
+
+    <video id="video" preload="auto" autoplay playsinline width="720" height="405"></video>
+
+    <div class="timeline-bar" id="timelineBar">
+      <div class="timeline-buffered" id="timelineBuffered"></div>
+      <div class="timeline-fill" id="timelineFill"></div>
+    </div>
+
+    <div class="controls-advanced">
+      <div class="controls-left">
+        <button id="playBtn" title="Play/Pause">
+          <svg class="icon-play" width="16" height="16" viewBox="0 0 16 16" style="vertical-align:middle;fill:#bbb;stroke:#bbb">
+            <polygon points="3,2 14,8 3,14" />
+          </svg>
+          <svg class="icon-pause" width="16" height="16" viewBox="0 0 16 16" style="vertical-align:middle;display:none;fill:#bbb;stroke:#bbb">
+            <rect x="3" y="2" width="3" height="12" rx="1" />
+            <rect x="10" y="2" width="3" height="12" rx="1" />
+          </svg>
+        </button>
+        <button id="muteBtn" title="Mute/Unmute">
+          <svg class="icon-unmute" width="16" height="16" viewBox="0 0 16 16" style="vertical-align:middle;fill:#bbb;stroke:#bbb">
+            <polygon points="2,6 6,6 10,2 10,14 6,10 2,10" />
+            <rect x="11" y="6" width="3" height="4" rx="1" />
+          </svg>
+          <svg class="icon-mute" width="16" height="16" viewBox="0 0 16 16" style="vertical-align:middle;display:none;fill:#bbb;stroke:#bbb">
+            <polygon points="2,6 6,6 10,2 10,14 6,10 2,10" />
+            <line x1="12" y1="5" x2="15" y2="11" stroke="#e74c3c" stroke-width="2" />
+            <line x1="15" y1="5" x2="12" y2="11" stroke="#e74c3c" stroke-width="2" />
+          </svg>
+        </button>
+        <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="0.5">
+      </div>
+      <div class="controls-right">
+        <button id="pipBtn" title="Mini Player">
+          <svg width="16" height="16" viewBox="0 0 16 16" style="vertical-align:middle;fill:#bbb;stroke:#bbb">
+            <rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke-width="1.5"/>
+            <rect x="8.5" y="8.5" width="4" height="4" rx="0.8" />
+          </svg>
+        </button>
+        <button id="fullscreenBtn" title="Fullscreen">⛶</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="info-error">
+    Jika channel mengalami error, silakan gunakan
+    <a href="https://kasdullah.com/tvj/alt" target="_blank" class="alt-link">link alternatif ini</a>.
+  </p>
+
+  <footer class="footer-credit">
+    Created by <a href="https://www.instagram.com/ks.dullah/" target="_blank" class="alt-link">Kasdullah</a>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script type="text/javascript" src="script.js"></script>
+</body>
+</html>
