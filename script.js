@@ -311,3 +311,123 @@ const video = document.getElementById('video');
       }
       loadPlaylist();
     });
+
+    // --- Pengingat Program (Reminders) ---
+function initReminders() {
+  // Mendapatkan waktu Tokyo (JST, UTC+9)
+  function getTokyoNow() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (9 * 60 * 60 * 1000));
+  }
+
+  function getTodayName(now) {
+    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    return hari[now.getDay()];
+  }
+
+  function getDayIndex(dayName) {
+    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    return hari.findIndex(h => h.toLowerCase() === (dayName || "").toLowerCase());
+  }
+
+  function getNextReminderDate(reminder, now) {
+    const todayIdx = now.getDay();
+    const reminderIdx = getDayIndex(reminder.day);
+    if (reminderIdx === -1) return null;
+
+    let dayDiff = (reminderIdx - todayIdx + 7) % 7;
+    let reminderHour = parseInt(reminder.hour, 10);
+    let reminderMinute = parseInt(reminder.minute, 10);
+    let reminderDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), reminderHour, reminderMinute, 0, 0);
+    reminderDate.setDate(reminderDate.getDate() + dayDiff);
+
+    // Jika hari sama dan waktu sudah lewat, lompat ke minggu depan
+    if (dayDiff === 0 && reminderDate < now) {
+      reminderDate.setDate(reminderDate.getDate() + 7);
+    }
+
+    return reminderDate;
+  }
+
+  // Fungsi untuk estimasi waktu ke pengingat berikutnya (dalam jam/menit)
+  function getTimeDiffString(target, now) {
+    let diffMs = target - now;
+    if (diffMs < 0) diffMs = 0;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const sisaMin = diffMin % 60;
+    if (diffHour > 0) {
+      return `${diffHour} jam ${sisaMin} menit lagi`;
+    } else if (sisaMin > 0) {
+      return `${sisaMin} menit lagi`;
+    } else {
+      return `Kurang dari 1 menit lagi`;
+    }
+  }
+
+  fetch("reminders.json")
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById("list");
+      const warningDiv = document.getElementById("warning");
+      if (!container) return;
+      if (!Array.isArray(data) || data.length === 0) {
+  container.textContent = "Belum ada pengingat.";
+  container.style.color = "#fff"; // Atur warna jadi putih
+  if (warningDiv) warningDiv.textContent = "⏰Pengingat program";
+  warningDiv.style.color = "#4cc3ff";
+  return;
+}
+
+      const now = getTokyoNow();
+
+      // Tambahkan properti nextDate ke setiap reminder
+      data.forEach(item => {
+        item.nextDate = getNextReminderDate(item, now);
+      });
+
+      // Urutkan berdasarkan waktu terdekat dari sekarang
+      data.sort((a, b) => {
+        if (!a.nextDate) return 1;
+        if (!b.nextDate) return -1;
+        return a.nextDate - b.nextDate;
+      });
+
+      let adaMerah = false;
+
+      data.forEach(item => {
+        // Tandai merah jika jarak ke pengingat <= 24 jam (86400000 ms)
+        const isRed = item.nextDate && (item.nextDate - now) <= 24 * 60 * 60 * 1000 && (item.nextDate - now) >= 0;
+        const div = document.createElement("div");
+        div.className = isRed ? "reminder-today" : "reminder-normal";
+        if (isRed) {
+          adaMerah = true;
+          const estimasi = getTimeDiffString(item.nextDate, now);
+          div.innerHTML = `${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')} – ${item.programName} (${item.channel}) <span style="margin-left:auto;color:#ff4d4d;font-weight:normal;font-size:0.95em;">${estimasi}</span>`;
+        } else {
+          div.textContent = `${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')} – ${item.programName} (${item.channel})`;
+        }
+        container.appendChild(div);
+      });
+
+      if (adaMerah && warningDiv) {
+        warningDiv.textContent = `Ada pengingat dalam 24 jam ke depan!⚠️`;
+      } else if (warningDiv) {
+        warningDiv.textContent = "⏰Pengingat program";
+        warningDiv.style.color = "#4cc3ff"; // Ganti dengan warna yang kamu mau
+      }
+      
+    })
+    .catch(() => {
+      const container = document.getElementById("list");
+      const warningDiv = document.getElementById("warning");
+      if (container) container.textContent = "Gagal memuat data pengingat.";
+      if (warningDiv) warningDiv.textContent = "⏰Pengingat program";
+      warningDiv.style.color = "#4cc3ff";
+    });
+}
+
+// Jalankan setelah DOM siap
+window.addEventListener('DOMContentLoaded', initReminders);
