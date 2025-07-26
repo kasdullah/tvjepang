@@ -4,11 +4,13 @@
   <meta charset="UTF-8">
   <title>Streaming TV Jepang</title>
   <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
   <h1>📺 Streaming TV Jepang</h1>
 
   <div class="main-flex">
+
     <div class="combo-wrapper">
       <div class="search-wrapper">
         <input type="text" id="searchInput" spellcheck="false" placeholder="🔍 Cari nama channel...">
@@ -16,10 +18,10 @@
       </div>
       <div id="channelList"></div>
     </div>
+
     <div class="media-wrapper">
+
       <div class="info-bar">
-
-
         <div style="display:flex;align-items:center;">
           <div id="infoChannel">Channel: -</div>
           <button id="resetBtn" title="Reset Channel" class="btn-refresh" style="margin-left:8px;">
@@ -28,8 +30,6 @@
             </svg>
           </button>
         </div>
-       
-
         <div id="infoClock">Jam Tokyo: -</div>
       </div>
 
@@ -72,10 +72,11 @@
             </svg>
           </button>
           <button id="fullscreenBtn" title="Fullscreen">⛶</button>
-          
         </div>
       </div>
+
     </div>
+
     <div class="reminder-container">
       <div class="pengingat">
         <div id="warning" style="color:red;font-weight:bold;margin-bottom:10px;"></div>
@@ -84,6 +85,7 @@
           <div id="list"></div>
       </div>
     </div>
+    
   </div>
 
   <p class="info-error">
