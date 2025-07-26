@@ -478,3 +478,12 @@ body {
     min-height: auto !important;
   }
 }
+
+@media (max-width: 900px) {
+  .media-wrapper:fullscreen,
+  .media-wrapper:-webkit-full-screen {
+    background: #000 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
