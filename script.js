@@ -312,122 +312,165 @@ const video = document.getElementById('video');
       loadPlaylist();
     });
 
-    // --- Pengingat Program (Reminders) ---
-function initReminders() {
-  // Mendapatkan waktu Tokyo (JST, UTC+9)
-  function getTokyoNow() {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    return new Date(utc + (9 * 60 * 60 * 1000));
-  }
+// ================= MODULAR REMINDER VIEW =================
+// Penanda: Kode modular untuk menampilkan reminder (tanpa hapus/edit)
 
-  function getTodayName(now) {
-    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-    return hari[now.getDay()];
-  }
+  // ========== Bagian 1: Waktu dan Helper ==========
+    function getTokyoNow() {
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      return new Date(utc + (9 * 60 * 60 * 1000));
+    }
+    
 
-  function getDayIndex(dayName) {
-    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-    return hari.findIndex(h => h.toLowerCase() === (dayName || "").toLowerCase());
-  }
-
-  function getNextReminderDate(reminder, now) {
-    const todayIdx = now.getDay();
-    const reminderIdx = getDayIndex(reminder.day);
-    if (reminderIdx === -1) return null;
-
-    let dayDiff = (reminderIdx - todayIdx + 7) % 7;
-    let reminderHour = parseInt(reminder.hour, 10);
-    let reminderMinute = parseInt(reminder.minute, 10);
-    let reminderDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), reminderHour, reminderMinute, 0, 0);
-    reminderDate.setDate(reminderDate.getDate() + dayDiff);
-
-    // Jika hari sama dan waktu sudah lewat, lompat ke minggu depan
-    if (dayDiff === 0 && reminderDate < now) {
-      reminderDate.setDate(reminderDate.getDate() + 7);
+    function getDayIndex(dayName) {
+      const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      return hari.findIndex(h => h.toLowerCase() === (dayName || "").toLowerCase());
     }
 
-    return reminderDate;
-  }
-
-  // Fungsi untuk estimasi waktu ke pengingat berikutnya (dalam jam/menit)
-  function getTimeDiffString(target, now) {
-    let diffMs = target - now;
-    if (diffMs < 0) diffMs = 0;
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    const sisaMin = diffMin % 60;
-    if (diffHour > 0) {
-      return `${diffHour} jam ${sisaMin} menit lagi`;
-    } else if (sisaMin > 0) {
-      return `${sisaMin} menit lagi`;
-    } else {
-      return `Kurang dari 1 menit lagi`;
-    }
-  }
-
-  fetch("reminders.json")
-    .then(res => res.json())
-    .then(data => {
-      const container = document.getElementById("list");
-      const warningDiv = document.getElementById("warning");
-      if (!container) return;
-      if (!Array.isArray(data) || data.length === 0) {
-  container.textContent = "Belum ada pengingat.";
-  container.style.color = "#fff"; // Atur warna jadi putih
-  if (warningDiv) warningDiv.textContent = "⏰Pengingat program";
-  warningDiv.style.color = "#4cc3ff";
-  return;
-}
-
-      const now = getTokyoNow();
-
-      // Tambahkan properti nextDate ke setiap reminder
-      data.forEach(item => {
-        item.nextDate = getNextReminderDate(item, now);
-      });
-
-      // Urutkan berdasarkan waktu terdekat dari sekarang
-      data.sort((a, b) => {
-        if (!a.nextDate) return 1;
-        if (!b.nextDate) return -1;
-        return a.nextDate - b.nextDate;
-      });
-
-      let adaMerah = false;
-
-      data.forEach(item => {
-        // Tandai merah jika jarak ke pengingat <= 24 jam (86400000 ms)
-        const isRed = item.nextDate && (item.nextDate - now) <= 24 * 60 * 60 * 1000 && (item.nextDate - now) >= 0;
-        const div = document.createElement("div");
-        div.className = isRed ? "reminder-today" : "reminder-normal";
-        if (isRed) {
-          adaMerah = true;
-          const estimasi = getTimeDiffString(item.nextDate, now);
-          div.innerHTML = `${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')} – ${item.programName} (${item.channel}) <span style="margin-left:auto;color:#ff4d4d;font-weight:normal;font-size:0.95em;">${estimasi}</span>`;
-        } else {
-          div.textContent = `${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')} – ${item.programName} (${item.channel})`;
-        }
-        container.appendChild(div);
-      });
-
-      if (adaMerah && warningDiv) {
-        warningDiv.textContent = `Ada pengingat dalam 24 jam ke depan!⚠️`;
-      } else if (warningDiv) {
-        warningDiv.textContent = "⏰Pengingat program";
-        warningDiv.style.color = "#4cc3ff"; // Ganti dengan warna yang kamu mau
+    function getNextReminderDate(reminder, now) {
+      const todayIdx = now.getDay();
+      const reminderIdx = getDayIndex(reminder.day);
+      if (reminderIdx === -1) return null;
+      let dayDiff = (reminderIdx - todayIdx + 7) % 7;
+      let reminderHour = parseInt(reminder.hour, 10);
+      let reminderMinute = parseInt(reminder.minute, 10);
+      let reminderDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), reminderHour, reminderMinute, 0, 0);
+      reminderDate.setDate(reminderDate.getDate() + dayDiff);
+      if (dayDiff === 0 && reminderDate < now) {
+        reminderDate.setDate(reminderDate.getDate() + 7);
       }
-      
-    })
-    .catch(() => {
-      const container = document.getElementById("list");
-      const warningDiv = document.getElementById("warning");
-      if (container) container.textContent = "Gagal memuat data pengingat.";
-      if (warningDiv) warningDiv.textContent = "⏰Pengingat program";
-      warningDiv.style.color = "#4cc3ff";
-    });
+      return reminderDate;
+    }
+
+    function getTimeDiffString(target, now) {
+  let diffMs = target - now - (30 * 60 * 1000); // Kurangi 30 menit
+
+  if (diffMs <= 0) {
+    return "SEDANG TAYANG";
+  }
+
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHour = Math.floor(diffMin / 60);
+  const sisaMin = diffMin % 60;
+
+  if (diffHour > 0) {
+    return `${diffHour} jam ${sisaMin} menit lagi`;
+  } else {
+    return `${sisaMin} menit lagi`;
+  }
 }
 
-// Jalankan setelah DOM siap
-window.addEventListener('DOMContentLoaded', initReminders);
+
+    // ========== Bagian 2: Render Reminder ==========
+    let estimasiInterval = null;
+    function renderReminders() {
+      fetch("reminders.json")
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById("list");
+          const warningDiv = document.getElementById("warning");
+          container.innerHTML = "";
+          if (!Array.isArray(data) || data.length === 0) {
+            container.textContent = "Belum ada pengingat.";
+            container.style.color = "#fff";
+            if (warningDiv) warningDiv.textContent = "⏰Pengingat program";
+            warningDiv.style.color = "#4cc3ff";
+            return;
+          }
+
+          const now = new Date(getTokyoNow().getTime() - 30 * 60 * 1000);
+          const nowMs = now.getTime();
+          const plus30Ms = 30 * 60 * 1000;
+
+          data.forEach(item => {
+            item.nextDate = getNextReminderDate(item, now);
+          });
+
+          const sorted = [...data].sort((a, b) => {
+            const aStart = a.nextDate?.getTime() || 0;
+            const bStart = b.nextDate?.getTime() || 0;
+            const aActive = aStart && nowMs >= aStart && nowMs < aStart + plus30Ms;
+            const bActive = bStart && nowMs >= bStart && nowMs < bStart + plus30Ms;
+            if (aActive && !bActive) return -1;
+            if (!aActive && bActive) return 1;
+            if (aActive && bActive) return aStart - bStart;
+
+            const aSoon = aStart > nowMs && aStart - nowMs < 24 * 60 * 60 * 1000;
+            const bSoon = bStart > nowMs && bStart - nowMs < 24 * 60 * 60 * 1000;
+            if (aSoon && !bSoon) return -1;
+            if (!aSoon && bSoon) return 1;
+            if (aSoon && bSoon) return aStart - bStart;
+
+            const aExpired = aStart && nowMs >= aStart + plus30Ms;
+            const bExpired = bStart && nowMs >= bStart + plus30Ms;
+            if (!aExpired && bExpired) return -1;
+            if (aExpired && !bExpired) return 1;
+
+            return Math.abs(aStart - nowMs) - Math.abs(bStart - nowMs);
+          });
+
+          let adaMerah = false;
+          sorted.forEach(item => {
+            const tayangStart = item.nextDate;
+            const tayangEnd = new Date(tayangStart.getTime() + plus30Ms);
+            const isRed = tayangStart && (
+              (tayangStart - now <= 24 * 60 * 60 * 1000 && tayangStart - now >= 0) ||
+              (nowMs >= tayangStart.getTime() && nowMs < tayangEnd.getTime())
+            );
+            if (isRed) adaMerah = true;
+            const isSedangTayang = tayangStart && nowMs >= tayangStart.getTime() && nowMs < tayangEnd.getTime();
+
+            const estimasiId = `estimasi-${item.day}-${item.hour}-${item.minute}-${item.programName.replace(/\W/g, '')}-${item.channel.replace(/\W/g, '')}`;
+            const div = document.createElement("div");
+            div.className = isRed ? "reminder-today" : "reminder-normal";
+
+            let html = isRed ? `<span class="bell">🔔</span> ` : "";
+            html += `${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')} – ${item.programName} (${item.channel})`;
+
+            if (isSedangTayang) {
+              html += `<span id="${estimasiId}" style="margin-left:12px; color:#ff4d4d; font-weight:bold; font-size:0.95em;">SEDANG TAYANG</span>`;
+            } else if (isRed) {
+              html += `<span id="${estimasiId}" style="margin-left:12px; color:#ff4d4d; font-weight:normal; font-size:0.95em;">${getTimeDiffString(tayangStart, now)}</span>`;
+            }
+
+            div.innerHTML = html;
+            container.appendChild(div);
+          });
+
+          if (adaMerah && warningDiv) {
+            warningDiv.textContent = `Ada pengingat dalam 24 jam ke depan!⚠️`;
+            warningDiv.style.color = "#ff4d4d";
+          } else if (warningDiv) {
+            warningDiv.textContent = "⏰Pengingat program";
+            warningDiv.style.color = "#4cc3ff"; // Ganti dengan warna yang kamu mau
+          }
+
+          if (estimasiInterval) clearInterval(estimasiInterval);
+          estimasiInterval = setInterval(() => {
+            const now = getTokyoNow();
+            const nowMs = now.getTime();
+            sorted.forEach(item => {
+              const tayangStart = item.nextDate;
+              const tayangEnd = new Date(tayangStart.getTime() + plus30Ms);
+              const estimasiId = `estimasi-${item.day}-${item.hour}-${item.minute}-${item.programName.replace(/\W/g, '')}-${item.channel.replace(/\W/g, '')}`;
+              const span = document.getElementById(estimasiId);
+              if (span) {
+                if (tayangStart && nowMs >= tayangStart.getTime() && nowMs < tayangEnd.getTime()) {
+                  span.textContent = "SEDANG TAYANG";
+                  span.style.fontWeight = "bold";
+                } else if (tayangStart && tayangStart - now <= 24 * 60 * 60 * 1000 && tayangStart - now >= 0) {
+                  span.textContent = getTimeDiffString(tayangStart, now);
+                }
+              }
+            });
+          }, 1000 * 60);
+        })
+        .catch(() => {
+          document.getElementById("list").textContent = "Gagal memuat data pengingat.";
+        });
+    }
+
+    renderReminders();
+    setInterval(renderReminders, 60000); // update tiap 1 menit
+// ================= END MODULAR REMINDER VIEW =================

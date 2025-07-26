@@ -1,0 +1,26 @@
+[
+    {
+        "programName": "\u30cf\u30de\u30b9\u30ab\u653e\u9001\u90e8(Asuka Saito)",
+        "channel": "TV Asahi",
+        "day": "Selasa",
+        "hour": "00",
+        "minute": "15",
+        "timeFormat": "24"
+    },
+    {
+        "programName": "FOGDOG(Yuna Taira)",
+        "channel": "ytv",
+        "day": "Selasa",
+        "hour": "01",
+        "minute": "39",
+        "timeFormat": "24"
+    },
+    {
+        "programName": "program baru",
+        "channel": "Animax",
+        "day": "Minggu",
+        "hour": "04",
+        "minute": "40",
+        "timeFormat": "24"
+    }
+]

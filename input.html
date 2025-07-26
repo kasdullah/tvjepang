@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Input Jadwal Tayang</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f6f6f6;
+      padding: 20px;
+    }
+
+    .show-container {
+      max-width: 520px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 18px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .program-info {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      font-weight: bold;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      font-size: 1em;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+    }
+
+    .time-container {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .input-row input,
+    .input-row select {
+      flex: 1;
+      min-width: 60px;
+      padding: 6px 8px;
+    }
+
+    #timeError {
+      color: red;
+      margin-top: 6px;
+      display: none;
+    }
+/*reminder styles*/
+    .reminder-today {
+      background: #ffeaea;
+      border: 1px solid #ff4d4d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+    }
+    .reminder-normal {
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+    }
+    .bell {
+      color: #ff4d4d;
+      font-size: 1.3em;
+      margin-right: 8px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="show-container">
+    <form id="tvReminderForm">
+      <label for="programName">Informasi Program</label>
+      <div class="program-info">
+        <input type="text" id="programName" placeholder="Nama Program" required />
+        <select id="channelSelect" required>
+          <option value="">Memuat Channel...</option>
+        </select>
+      </div>
+
+      <label for="hour">Waktu Tayang</label>
+      <div class="time-container">
+        <div class="input-row">
+          <select id="day" required style="max-width:90px;">
+            <option value="">Hari</option>
+            <option value="Senin">Senin</option>
+            <option value="Selasa">Selasa</option>
+            <option value="Rabu">Rabu</option>
+            <option value="Kamis">Kamis</option>
+            <option value="Jumat">Jumat</option>
+            <option value="Sabtu">Sabtu</option>
+            <option value="Minggu">Minggu</option>
+          </select>
+          <select id="hour" required></select>
+          <span>:</span>
+          <select id="minute" required></select>
+          <select id="ampm">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+          <select id="timeFormat">
+            <option value="12">12 Jam</option>
+            <option value="24">24 Jam</option>
+          </select>
+        </div>
+        <div id="timeError">Format waktu tidak valid.</div>
+      </div>
+      <div style="margin-top:16px;">
+        <button type="submit">Set Pengingat</button>
+      </div>
+      <div id="channelError" style="color:red;display:none;"></div>
+    </form>
+  </div>
+
+  <h1 style="display:flex;align-items:center;justify-content:space-between;">
+  <span>🕒 Daftar Pengingat</span>
+  <span id="tokyoTime" style="font-size:1em;font-weight:normal;color:#444;white-space:nowrap;"></span>
+</h1>
+  <div id="warning" style="color:red;font-weight:bold;margin-bottom:10px;"></div>
+  <div id="list"></div>
+
+  <script>
+    const timeFormat = document.getElementById("timeFormat");
+    const ampm = document.getElementById("ampm");
+    const hour = document.getElementById("hour");
+    const channelSelect = document.getElementById("channelSelect");
+
+    // Format waktu dynamic
+    timeFormat.addEventListener("change", () => {
+      const format = timeFormat.value;
+      ampm.style.display = format === "12" ? "block" : "none";
+      hour.min = format === "12" ? 1 : 0;
+      hour.max = format === "12" ? 12 : 23;
+
+      if (format === "24" && hour.value > 23) hour.value = "";
+      if (format === "12" && (hour.value < 1 || hour.value > 12)) hour.value = "";
+    });
+
+    timeFormat.dispatchEvent(new Event("change"));
+
+    
+    // Memuat daftar channel dari M3U
+    const m3uUrl = "https://raw.githubusercontent.com/ptntp/Japan-IPTV/main/jp.m3u";
+
+    fetch(m3uUrl)
+      .then(response => response.text())
+      .then(data => {
+        const lines = data.split(/\r?\n/);
+        const channels = [];
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (line.startsWith("#EXTINF") && !line.includes('group-title="Information"')) {
+            const nameMatch = line.match(/,(.*)$/);
+            const channelName = nameMatch ? nameMatch[1].trim() : `Channel ${i}`;
+            channels.push(channelName);
+          }
+        }
+
+        channels.sort((a, b) => a.localeCompare(b, 'id')); // Urutkan A-Z
+
+        const channelSelect = document.getElementById("channelSelect");
+        channelSelect.innerHTML = '<option value="">-- Pilih Channel --</option>';
+        channels.forEach(name => {
+          channelSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+      })
+      .catch(error => {
+        console.error("Gagal memuat M3U:", error);
+        const channelSelect = document.getElementById("channel");
+        channelSelect.innerHTML = '<option value="">Gagal memuat channel</option>';
+      });
+
+    // Generate options for hour and minute
+function populateHourMinute() {
+  const hourSelect = document.getElementById("hour");
+  const minuteSelect = document.getElementById("minute");
+  const timeFormat = document.getElementById("timeFormat").value;
+
+  // Populate hour
+  hourSelect.innerHTML = "";
+  if (timeFormat === "12") {
+    for (let i = 1; i <= 12; i++) {
+      const val = i.toString().padStart(2, '0');
+      hourSelect.innerHTML += `<option value="${val}">${val}</option>`;
+    }
+  } else {
+    for (let i = 0; i <= 23; i++) {
+      const val = i.toString().padStart(2, '0');
+      hourSelect.innerHTML += `<option value="${val}">${val}</option>`;
+    }
+  }
+
+  // Populate minute
+  minuteSelect.innerHTML = "";
+  for (let i = 0; i <= 59; i++) {
+    const val = i.toString().padStart(2, '0');
+    minuteSelect.innerHTML += `<option value="${val}">${val}</option>`;
+  }
+}
+
+// Update hour/minute options on time format change
+document.getElementById("timeFormat").addEventListener("change", function() {
+  populateHourMinute();
+  // Tampilkan atau sembunyikan AM/PM
+  document.getElementById("ampm").style.display = this.value === "12" ? "block" : "none";
+});
+populateHourMinute();
+
+    document.getElementById("tvReminderForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      const programName = document.getElementById("programName").value;
+      const channel = document.getElementById("channelSelect").value;
+      const day = document.getElementById("day").value;
+      let hour = parseInt(document.getElementById("hour").value, 10);
+      const minute = document.getElementById("minute").value;
+      const ampm = document.getElementById("ampm").value;
+      const timeFormat = document.getElementById("timeFormat").value;
+
+      const errorDiv = document.getElementById("channelError");
+      errorDiv.style.display = "none";
+
+      if (!channel) {
+        errorDiv.textContent = "Silakan pilih channel yang valid.";
+        errorDiv.style.display = "block";
+        return;
+      }
+      if (!day) {
+        errorDiv.textContent = "Silakan pilih hari.";
+        errorDiv.style.display = "block";
+        return;
+      }
+
+      // Konversi ke 24 jam jika input 12 jam
+      let hour24 = hour;
+      if (timeFormat === "12") {
+        if (ampm === "PM" && hour !== 12) {
+          hour24 = hour + 12;
+        } else if (ampm === "AM" && hour === 12) {
+          hour24 = 0;
+        }
+      }
+
+      const reminder = {
+        programName,
+        channel,
+        day,
+        hour: hour24.toString().padStart(2, '0'),
+        minute,
+        timeFormat: "24"
+      };
+
+      fetch('reminders.json')
+        .then(res => res.json())
+        .then(reminders => {
+          // FLATTEN: pastikan reminders adalah array satu dimensi objek
+          if (!Array.isArray(reminders)) reminders = [];
+          reminders = reminders.flat(Infinity).filter(item => typeof item === "object" && !Array.isArray(item));
+          // PASTIKAN reminder yang di-push adalah objek, bukan array!
+          reminders.push(reminder);
+          // Kirim array satu dimensi ke save.php
+          return fetch('save.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reminders)
+          });
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert("Pengingat berhasil disimpan!");
+            // Simpan pilihan format waktu terakhir
+            const lastFormat = document.getElementById("timeFormat").value;
+            document.getElementById("tvReminderForm").reset();
+            // Set kembali format waktu ke pilihan terakhir
+            document.getElementById("timeFormat").value = lastFormat;
+            // Tampilkan/sembunyikan AM/PM sesuai format terakhir
+            document.getElementById("ampm").style.display = lastFormat === "12" ? "block" : "none";
+            populateHourMinute();
+            renderReminders();
+          } else {
+            alert("Gagal menyimpan pengingat.");
+          }
+        })
+        .catch(() => {
+          alert("Gagal menyimpan pengingat (server tidak ditemukan).");
+        });
+    });
+
+     // Mendapatkan waktu Tokyo (JST, UTC+9)
+  function getTokyoNow() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (9 * 60 * 60 * 1000));
+  }
+
+  function getTodayName(now) {
+    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    return hari[now.getDay()];
+  }
+
+  function getDayIndex(dayName) {
+    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    return hari.findIndex(h => h.toLowerCase() === (dayName || "").toLowerCase());
+  }
+
+  function getNextReminderDate(reminder, now) {
+    const todayIdx = now.getDay();
+    const reminderIdx = getDayIndex(reminder.day);
+    if (reminderIdx === -1) return null;
+
+    let dayDiff = (reminderIdx - todayIdx + 7) % 7;
+    let reminderHour = parseInt(reminder.hour, 10);
+    let reminderMinute = parseInt(reminder.minute, 10);
+    let reminderDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), reminderHour, reminderMinute, 0, 0);
+    reminderDate.setDate(reminderDate.getDate() + dayDiff);
+
+    // Jika hari sama dan waktu sudah lewat, lompat ke minggu depan
+    if (dayDiff === 0 && reminderDate < now) {
+      reminderDate.setDate(reminderDate.getDate() + 7);
+    }
+
+    return reminderDate;
+  }
+
+  // Fungsi untuk estimasi waktu ke pengingat berikutnya (dalam jam/menit)
+  function getTimeDiffString(target, now) {
+    let diffMs = target - now;
+    if (diffMs < 0) diffMs = 0;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const sisaMin = diffMin % 60;
+    if (diffHour > 0) {
+      return `${diffHour} jam ${sisaMin} menit lagi`;
+    } else if (sisaMin > 0) {
+      return `${sisaMin} menit lagi`;
+    } else {
+      return `Kurang dari 1 menit lagi`;
+    }
+  }
+
+  // Fungsi untuk update waktu Tokyo di pojok kanan atas
+  function updateTokyoTime() {
+    const now = getTokyoNow();
+    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const bulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+    const hariStr = hari[now.getDay()];
+    const tgl = now.getDate().toString().padStart(2, '0');
+    const bln = bulan[now.getMonth()];
+    const thn = now.getFullYear().toString().slice(-2);
+    const jam = now.getHours().toString().padStart(2, '0');
+    const menit = now.getMinutes().toString().padStart(2, '0');
+    document.getElementById("tokyoTime").textContent =
+      `Tokyo, ${hariStr} ${tgl} ${bln} ${thn}, ${jam}:${menit}`;
+  }
+
+  // Panggil pertama kali dan setiap menit
+  updateTokyoTime();
+  setInterval(updateTokyoTime, 1000 * 60);
+
+  // Simpan interval estimasi agar bisa di-clear jika perlu
+  let estimasiInterval = null;
+
+  function renderReminders() {
+  fetch("reminders.json")
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById("list");
+      const warningDiv = document.getElementById("warning");
+      container.innerHTML = "";
+      if (!Array.isArray(data) || data.length === 0) {
+        container.textContent = "Belum ada pengingat.";
+        warningDiv.textContent = "";
+        return;
+      }
+
+      // Ambil waktu Tokyo asli untuk penanda jam pojok kanan atas
+      const nowTokyo = getTokyoNow();
+      // Ambil waktu Tokyo yang diperlambat 30 menit untuk pengurutan pengingat
+      const nowForSort = new Date(nowTokyo.getTime() - 30 * 60 * 1000);
+
+      // Tambahkan properti nextDate ke setiap reminder (pakai nowTokyo agar estimasi tetap benar)
+      data.forEach(item => {
+        item.nextDate = getNextReminderDate(item, nowForSort);
+      });
+
+      // Urutkan dengan nowForSort (waktu Tokyo - 30 menit)
+      const sorted = [...data].sort((a, b) => {
+        const nowMs = nowForSort.getTime();
+        const aStart = a.nextDate ? a.nextDate.getTime() : 0;
+        const bStart = b.nextDate ? b.nextDate.getTime() : 0;
+        const aEnd = a.nextDate ? aStart + 30 * 60 * 1000 : 0;
+        const bEnd = b.nextDate ? bStart + 30 * 60 * 1000 : 0;
+
+        // Peringkat 1: sedang tayang (dalam 30 menit setelah mulai)
+        const aSedangTayang = a.nextDate && nowMs >= aStart && nowMs < aEnd;
+        const bSedangTayang = b.nextDate && nowMs >= bStart && nowMs < bEnd;
+        if (aSedangTayang && bSedangTayang) {
+          // Yang sisa waktu tayangnya paling sedikit di atas
+          return (aEnd - nowMs) - (bEnd - nowMs);
+        }
+        if (aSedangTayang && !bSedangTayang) return -1;
+        if (!aSedangTayang && bSedangTayang) return 1;
+
+        // Peringkat 2: akan tayang <24 jam ke depan
+        const aAkanTayang = a.nextDate && aStart - nowMs <= 24 * 60 * 60 * 1000 && aStart - nowMs >= 0;
+        const bAkanTayang = b.nextDate && bStart - nowMs <= 24 * 60 * 60 * 1000 && bStart - nowMs >= 0;
+        if (aAkanTayang && bAkanTayang) {
+          // Yang waktu mulai paling cepat di atas
+          return aStart - bStart;
+        }
+        if (aAkanTayang && !bAkanTayang) return -1;
+        if (!aAkanTayang && bAkanTayang) return 1;
+
+        // Urutan ketiga: berdasarkan waktu mulai terdekat
+        return aStart - bStart;
+      });
+
+      let adaMerah = false;
+
+      sorted.forEach(item => {
+        const tayangStart = item.nextDate;
+        const tayangEnd = new Date(tayangStart.getTime() + 30 * 60 * 1000); // +30 menit
+        const nowMs = nowTokyo.getTime(); // Untuk penanda status merah dan estimasi tetap pakai waktu Tokyo asli
+
+        // Status merah: pengingat akan datang (<24 jam) atau sedang tayang (dalam 30 menit setelah mulai)
+        const isRed =
+          (tayangStart && tayangStart - nowTokyo <= 24 * 60 * 60 * 1000 && tayangStart - nowTokyo >= 0) ||
+          (tayangStart && nowMs >= tayangStart.getTime() && nowMs < tayangEnd.getTime());
+
+        const isSedangTayang = tayangStart && nowMs >= tayangStart.getTime() && nowMs < tayangEnd.getTime();
+
+        const div = document.createElement("div");
+        div.className = isRed ? "reminder-today" : "reminder-normal";
+        let html = "";
+        const estimasiId = `estimasi-${item.day}-${item.hour}-${item.minute}-${item.programName.replace(/\W/g, '')}-${item.channel.replace(/\W/g, '')}`;
+
+        if (isRed) {
+          adaMerah = true;
+          html += `<span class="bell">🔔</span> `;
+          html += `${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')} – ${item.programName} (${item.channel})`;
+          if (isSedangTayang) {
+            html += `<span id="${estimasiId}" style="margin-left:12px;color:#ff4d4d;font-weight:normal;font-size:0.95em;">SEDANG TAYANG</span>`;
+          } else {
+            const estimasi = getTimeDiffString(item.nextDate, nowTokyo);
+            html += `<span id="${estimasiId}" style="margin-left:12px;color:#ff4d4d;font-weight:normal;font-size:0.95em;">${estimasi}</span>`;
+          }
+        } else {
+          html += `${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')} – ${item.programName} (${item.channel})`;
+        }
+        html += `<span style="flex:1"></span>`;
+        const idxAsli = data.findIndex(d =>
+          d.programName === item.programName &&
+          d.channel === item.channel &&
+          d.day === item.day &&
+          d.hour === item.hour &&
+          d.minute === item.minute
+        );
+        html += `<button onclick="deleteReminder(${idxAsli}, '${item.programName.replace(/'/g,"\\'")}', '${item.channel.replace(/'/g,"\\'")}', '${item.day}', '${item.hour}', '${item.minute}')" style="background:#ff4d4d;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">Hapus</button>`;
+        div.innerHTML = html;
+        container.appendChild(div);
+      });
+
+      if (adaMerah) {
+        warningDiv.textContent = `⚠️ Ada pengingat dalam 24 jam ke depan! (Waktu Tokyo)`;
+      } else {
+        warningDiv.textContent = "";
+      }
+
+      // Update estimasi setiap menit
+      if (estimasiInterval) clearInterval(estimasiInterval);
+      estimasiInterval = setInterval(() => {
+        const now = getTokyoNow();
+        sorted.forEach(item => {
+          const tayangStart = item.nextDate;
+          const tayangEnd = new Date(tayangStart.getTime() + 30 * 60 * 1000);
+          const nowMs = now.getTime();
+          const estimasiId = `estimasi-${item.day}-${item.hour}-${item.minute}-${item.programName.replace(/\W/g, '')}-${item.channel.replace(/\W/g, '')}`;
+          const span = document.getElementById(estimasiId);
+          if (span) {
+            if (tayangStart && nowMs >= tayangStart.getTime() && nowMs < tayangEnd.getTime()) {
+              span.textContent = "SEDANG TAYANG";
+            } else if (tayangStart && tayangStart - now <= 24 * 60 * 60 * 1000 && tayangStart - now >= 0) {
+              span.textContent = getTimeDiffString(tayangStart, now);
+            }
+          }
+        });
+      }, 1000 * 60);
+    })
+    .catch(() => {
+      document.getElementById("list").textContent = "Gagal memuat data pengingat.";
+    });
+}
+
+  // Perbaiki fungsi hapus agar tampilkan detail data
+function deleteReminder(index, programName, channel, day, hour, minute) {
+  const msg = `Yakin ingin menghapus pengingat berikut?\n\n${day}, ${hour}:${minute} – ${programName} (${channel})`;
+  if (!confirm(msg)) return;
+  fetch("reminders.json")
+    .then(res => res.json())
+    .then(data => {
+      data.splice(index, 1);
+      // Kirim data baru ke backend untuk disimpan
+      fetch("save.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(() => renderReminders());
+    });
+}
+
+// Panggil renderReminders saat halaman dimuat
+renderReminders();
+  </script>
+</body>
+</html>
