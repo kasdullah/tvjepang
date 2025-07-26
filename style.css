@@ -422,14 +422,59 @@ body {
 @media (max-width: 900px) {
   .main-flex {
     flex-direction: column;
-    align-items: stretch;
   }
-  .reminder-container {
+
+.combo-wrapper,
+.media-wrapper,
+.reminder-container {
+    margin-top: 0px!important;
+    margin-bottom: 0px!important;
+  }
+
+  .combo-wrapper {
+    order: 1;
     max-width: 100%;
-    margin-top: 16px;
-    align-items: stretch;
+    
   }
+  .media-wrapper {
+    order: 2;
+    max-width: 100%;
+    margin-left: 0px;
+    margin-right: 0px;
+  }
+
+  video {
+  width: 100%;
+  min-height: 180px;
+;
+  }
+
+  .reminder-container {
+    order: 3;
+    max-width: 100%;
+    align-items: stretch;
+    min-height: 400px;
+  }
+
+  .reminder-list {
+    flex: unset !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    display: block !important;
+    overflow-y: visible !important;
+  }
+
   .pengingat, .reminder-list {
     padding: 12px 8px;
+  }
+  .combo-wrapper {
+    min-height: 130px;
+  }
+
+  .media-wrapper,
+  .reminder-container {
+    height: auto !important;
+    min-height: auto !important;
   }
 }
