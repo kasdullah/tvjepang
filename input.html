@@ -93,6 +93,61 @@
       margin-right: 8px;
     }
 
+    @media (max-width: 600px) {
+  body {
+    padding: 6px;
+  }
+  .show-container {
+    max-width: 100%;
+    padding: 10px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .program-info {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .time-container {
+    padding: 8px;
+    border-radius: 6px;
+  }
+  .input-row {
+    flex-direction: column;
+    gap: 4px;
+    align-items: stretch;
+  }
+  input, select {
+    font-size: 1em;
+    padding: 7px;
+  }
+  .reminder-today, .reminder-normal {
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 0.98em;
+    padding: 8px 6px;
+  }
+  .bell {
+    font-size: 1.1em;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-size: 1.1em;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .program-info input[type="text"] {
+    max-width: 220px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .program-info input[type="text"],
+  .program-info select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
   </style>
 </head>
 <body>
