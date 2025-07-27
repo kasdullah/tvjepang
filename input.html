@@ -260,6 +260,8 @@
 
   <script>
     const timeFormat = document.getElementById("timeFormat");
+timeFormat.value = "24"; // Set default ke 24 jam
+timeFormat.dispatchEvent(new Event("change"));
     const ampm = document.getElementById("ampm");
     const hour = document.getElementById("hour");
     const channelSelect = document.getElementById("channelSelect");
