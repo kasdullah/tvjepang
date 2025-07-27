@@ -421,22 +421,76 @@ const video = document.getElementById('video');
             if (isRed) adaMerah = true;
             const isSedangTayang = tayangStart && nowMs >= tayangStart.getTime() && nowMs < tayangEnd.getTime();
 
+            // Tambahkan baris ini untuk mencari index asli
+            const idxAsli = data.findIndex(d =>
+              d.programName === item.programName &&
+              d.channel === item.channel &&
+              d.day === item.day &&
+              d.hour === item.hour &&
+              d.minute === item.minute
+            );
+
             const estimasiId = `estimasi-${item.day}-${item.hour}-${item.minute}-${item.programName.replace(/\W/g, '')}-${item.channel.replace(/\W/g, '')}`;
             const div = document.createElement("div");
             div.className = isRed ? "reminder-today" : "reminder-normal";
 
-            let html = isRed ? `<span class="bell">🔔</span> ` : "";
-            html += `${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')} – ${item.programName} (${item.channel})`;
-
-            if (isSedangTayang) {
-              html += `<span id="${estimasiId}" style="margin-left:12px; color:#ff4d4d; font-weight:bold; font-size:0.95em;">SEDANG TAYANG</span>`;
-            } else if (isRed) {
-              html += `<span id="${estimasiId}" style="margin-left:12px; color:#ff4d4d; font-weight:normal; font-size:0.95em;">${getTimeDiffString(tayangStart, now)}</span>`;
-            }
+            let html = `
+  <div style="display:flex;flex-direction:column;width:100%;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span>
+        ${isSedangTayang
+          ? `<span id="${estimasiId}" style="color:#ff4d4d;font-weight:bold;font-size:0.98em;">SEDANG TAYANG</span>`
+          : isRed
+            ? `<span id="${estimasiId}" style="color:#ff4d4d;font-weight:normal;font-size:0.98em;">${getTimeDiffString(tayangStart, now)}</span>`
+            : ''
+        }
+      </span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+      <span style="font-weight:bold;text-align:left;display:block;">${item.day ? item.day + ', ' : ''}${item.hour}:${item.minute.toString().padStart(2, '0')}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+      <span style="flex:1;text-align:left;">${item.programName}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+      <button class="btn-ganti-channel" data-channel="${item.channel}" style="padding:2px 12px;border-radius:4px;border:1px solid #4cc3ff;background:#eaf8ff;color:#0077b6;cursor:pointer;">${item.channel}</button>
+    </div>
+  </div>
+`;
 
             div.innerHTML = html;
             container.appendChild(div);
+
+            // PASANG EVENT LISTENER DI SINI
+            const btn = div.querySelector('.btn-ganti-channel');
+            if (btn) {
+              btn.onclick = function() {
+                const channelName = this.getAttribute('data-channel');
+                const found = channels.find(c => c.name === channelName);
+                if (found) {
+                  playStream(found.url, found.name);
+                } else {
+                  alert('Channel tidak ditemukan di daftar!');
+                }
+              };
+            }
           });
+
+          // Setelah container.appendChild(div);
+setTimeout(() => {
+  div.querySelectorAll('.btn-ganti-channel').forEach(btn => {
+    btn.onclick = function() {
+      const channelName = this.getAttribute('data-channel');
+      // Cari channel di daftar channels
+      const found = channels.find(c => c.name === channelName);
+      if (found) {
+        playStream(found.url, found.name);
+      } else {
+        alert('Channel tidak ditemukan di daftar!');
+      }
+    };
+  });
+}, 0);
 
           if (adaMerah && warningDiv) {
             warningDiv.textContent = `Ada pengingat dalam 24 jam ke depan!⚠️`;

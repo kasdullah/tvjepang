@@ -419,6 +419,34 @@ body {
       font-size: small;
     }
 
+.btn-ganti-channel:hover {
+  background: #4cc3ff;
+  color: #fff;
+  border-color: #0077b6;
+}
+
+/* Scrollbar untuk daftar pengingat */
+#list, .reminder-list {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #000;
+}
+
+#list::-webkit-scrollbar,
+.reminder-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+#list::-webkit-scrollbar-track,
+.reminder-list::-webkit-scrollbar-track {
+  background: #000;
+}
+
+#list::-webkit-scrollbar-thumb,
+.reminder-list::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 4px;
+}
+
 @media (max-width: 900px) {
   .main-flex {
     flex-direction: column;
@@ -477,9 +505,7 @@ body {
     height: auto !important;
     min-height: auto !important;
   }
-}
 
-@media (max-width: 900px) {
   .media-wrapper:fullscreen,
   .media-wrapper:-webkit-full-screen {
     background: #000 !important;
@@ -487,3 +513,4 @@ body {
     box-shadow: none !important;
   }
 }
+
