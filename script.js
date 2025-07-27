@@ -468,6 +468,12 @@ const video = document.getElementById('video');
         })
         .catch(() => {
           document.getElementById("list").textContent = "Gagal memuat data pengingat.";
+          document.getElementById("list").style.color = "#fff";
+          const warningDiv = document.getElementById("warning");
+          if (warningDiv) {
+            warningDiv.textContent = "⏰Pengingat program";
+            warningDiv.style.color = "#4cc3ff";
+          }
         });
     }
 
