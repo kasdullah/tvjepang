@@ -146,8 +146,62 @@
     max-width: 100%;
     box-sizing: border-box;
   }
+  .channel-group input[type="text"],
+  .channel-group select {
+    font-size: 1em;
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
 
+.channel-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+}
+
+.channel-group input[type="text"] {
+  border-radius: 6px 6px 0 0;
+  border-bottom: none;
+  border: 1px solid #bbb;
+  border-bottom: none;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+.channel-group select {
+  border-radius: 0 0 6px 6px;
+  border-top: none;
+  border: 1px solid #bbb;
+  border-top: none;
+  box-sizing: border-box;
+}
+
+.autocomplete-list {
+  position: absolute;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 0 0 4px 4px;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 0;
+  left: 0;
+  top: 100%;
+  box-sizing: border-box;
+  /* Hapus padding/margin yang menyebabkan overlap */
+}
+
+.autocomplete-item {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover {
+  background: #f0f0f0;
+}
   </style>
 </head>
 <body>
@@ -156,9 +210,11 @@
       <label for="programName">Informasi Program</label>
       <div class="program-info">
         <input type="text" id="programName" placeholder="Nama Program" required />
-        <select id="channelSelect" required>
-          <option value="">Memuat Channel...</option>
-        </select>
+        <div class="channel-group" style="position:relative;">
+  <input type="text" id="channelSearch" placeholder="Cari Channel..." autocomplete="off">
+  <select id="channelSelect" required style="margin-top:-1px;"></select>
+  <div id="channelList" class="autocomplete-list"></div>
+</div>
       </div>
 
       <label for="hour">Waktu Tayang</label>
@@ -225,34 +281,82 @@
     // Memuat daftar channel dari M3U
     const m3uUrl = "https://raw.githubusercontent.com/ptntp/Japan-IPTV/main/jp.m3u";
 
-    fetch(m3uUrl)
-      .then(response => response.text())
-      .then(data => {
-        const lines = data.split(/\r?\n/);
-        const channels = [];
+    // Simpan daftar channel global
+let allChannels = [];
 
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          if (line.startsWith("#EXTINF") && !line.includes('group-title="Information"')) {
-            const nameMatch = line.match(/,(.*)$/);
-            const channelName = nameMatch ? nameMatch[1].trim() : `Channel ${i}`;
-            channels.push(channelName);
-          }
+fetch(m3uUrl)
+  .then(response => response.text())
+  .then(data => {
+    const lines = data.split(/\r?\n/);
+    const channels = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.startsWith("#EXTINF") && !line.includes('group-title="Information"')) {
+        const nameMatch = line.match(/,(.*)$/);
+        const channelName = nameMatch ? nameMatch[1].trim() : `Channel ${i}`;
+        channels.push(channelName);
+      }
+    }
+
+    channels.sort((a, b) => a.localeCompare(b, 'id'));
+    allChannels = channels; // simpan global
+
+    const channelSelect = document.getElementById("channelSelect");
+    channelSelect.innerHTML = '<option value="">-- Pilih Channel --</option>';
+    channels.forEach(name => {
+      channelSelect.innerHTML += `<option value="${name}">${name}</option>`;
+    });
+  })
+  .catch(error => {
+    console.error("Gagal memuat M3U:", error);
+    const channelSelect = document.getElementById("channelSelect");
+    channelSelect.innerHTML = '<option value="">Gagal memuat channel</option>';
+  });
+
+// Fitur search channel
+const channelInput = document.getElementById("channelSearch");
+const channelListDiv = document.getElementById("channelList");
+
+channelInput.addEventListener("input", function() {
+  const keyword = this.value.toLowerCase();
+  channelListDiv.innerHTML = "";
+  if (!keyword) {
+    channelListDiv.style.display = "none";
+    return;
+  }
+  const filtered = allChannels.filter(name => name.toLowerCase().includes(keyword));
+  if (filtered.length === 0) {
+    channelListDiv.style.display = "none";
+    return;
+  }
+  filtered.forEach(name => {
+    const item = document.createElement("div");
+    item.className = "autocomplete-item";
+    item.textContent = name;
+    item.onclick = function() {
+      channelListDiv.style.display = "none";
+      // Sinkronkan dropdown agar value-nya sama dengan hasil klik
+      const channelSelect = document.getElementById("channelSelect");
+      for (let i = 0; i < channelSelect.options.length; i++) {
+        if (channelSelect.options[i].value === name) {
+          channelSelect.selectedIndex = i;
+          break;
         }
+      }
+    };
+    channelListDiv.appendChild(item);
+  });
+  channelListDiv.style.display = "block";
+});
 
-        channels.sort((a, b) => a.localeCompare(b, 'id')); // Urutkan A-Z
+// Sembunyikan list jika klik di luar
+document.addEventListener("click", function(e) {
+  if (!channelInput.contains(e.target) && !channelListDiv.contains(e.target)) {
+    channelListDiv.style.display = "none";
+  }
+});
 
-        const channelSelect = document.getElementById("channelSelect");
-        channelSelect.innerHTML = '<option value="">-- Pilih Channel --</option>';
-        channels.forEach(name => {
-          channelSelect.innerHTML += `<option value="${name}">${name}</option>`;
-        });
-      })
-      .catch(error => {
-        console.error("Gagal memuat M3U:", error);
-        const channelSelect = document.getElementById("channel");
-        channelSelect.innerHTML = '<option value="">Gagal memuat channel</option>';
-      });
 
     // Generate options for hour and minute
 function populateHourMinute() {
