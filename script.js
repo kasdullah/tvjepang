@@ -1,6 +1,7 @@
 // ===================== JAM TOKYO =====================
 // Fungsi update jam Tokyo di pojok atas
 const infoClock = document.getElementById('infoClock');
+
 function updateTokyoClock() {
   const now = new Date();
   const options = { timeZone: 'Asia/Tokyo' };
@@ -18,25 +19,16 @@ function updateTokyoClock() {
 }
 setInterval(updateTokyoClock, 1000);
 
-const timelineBar = document.getElementById('timelineBar');
-const timelineBuffered = document.getElementById('timelineBuffered');
+
 const channelList = document.getElementById('channelList');
 const infoChannel = document.getElementById('infoChannel');
-const video = document.getElementById('video');
-const volumeSlider = document.getElementById('volumeSlider');
-const timelineFill = document.getElementById('timelineFill');
-
-let hls = new Hls();
-let currentChannelUrl = '';
-let currentChannelName = '';
 let previousVolume = 0.5;
 let channels = [];
 
-var debug = false;
-var native = false; // default
-var pendingTimedMetadata = [];
+// Inisialisasi volume dan load playlist saat halaman dimuat KAYANYA BAGIAN VOLUME DIHAPUS
+const video = document.getElementById('video');
+const volumeSlider = document.getElementById('volumeSlider');
 
-// Inisialisasi volume dan load playlist saat halaman dimuat
 window.addEventListener('load', () => {
   video.volume = parseFloat(volumeSlider.value || 0.5);
   previousVolume = video.volume;
@@ -63,7 +55,6 @@ async function loadPlaylist() {
     }
     channels.sort((a, b) => a.name.localeCompare(b.name));
     updateChannelList(channels);
-
     // Pilih channel terakhir yang ditonton, atau TBS, atau channel pertama
     const savedUrl = localStorage.getItem('lastChannelUrl');
     const savedChannel = channels.find(c => c.url === savedUrl);
@@ -92,6 +83,16 @@ function updateChannelList(list) {
   channelList.scrollTop = 0;
 }
 
+const timelineFill = document.getElementById('timelineFill');
+let hls = new Hls();
+let currentChannelUrl = '';
+let currentChannelName = '';
+
+//Fungsi play channel MUNGKIN DIHAPUS
+var debug = false;
+var native = false; // default
+var pendingTimedMetadata = [];
+
 //tambahan dari video player.js 
 function handleMediaError(hls) {
   var now = performance.now();
@@ -112,7 +113,7 @@ function handleMediaError(hls) {
 }
 
 
-// Fungsi untuk menangani metadata waktu
+//tidak tahu untuk apa tapi harus ada
 function handleTimedMetadata(event, data) {
   for (var i = 0; i < data.samples.length; i++) {
     var pts = data.samples[i].pts;
@@ -120,8 +121,7 @@ function handleTimedMetadata(event, data) {
     pendingTimedMetadata.push({pts: pts, value: str});
   }
 }
-
-// Callback untuk update waktu video
+//tidak tahu untuk apa tapi harus ada
 function timeUpdateCallback() {
   var video = document.getElementById('video');
   if (pendingTimedMetadata.length == 0 || pendingTimedMetadata[0].pts > video.currentTime) {
@@ -132,10 +132,11 @@ function timeUpdateCallback() {
   console.log('Metadata ' + e.value + " at " + e.pts + "s");
 }
 
-
+// Fungsi untuk memutar stream M3U8
 function playStream(url, name = ''){
   currentChannelUrl = url;
   currentChannelName = name;
+  
   if(native){
     video.classList.add("native_mode");
     video.classList.remove("zoomed_mode");
@@ -146,19 +147,24 @@ function playStream(url, name = ''){
   if(hls){ hls.destroy(); }
   if (window.Hls && window.Hls.isSupported()) {
     hls = new window.Hls({debug:debug});
-    hls.on(window.Hls.Events.ERROR, function(event,data) {
-      var  msg = "Player error: " + data.type + " - " + data.details;
+    hls.on(window.Hls.Events.ERROR, function(event, data) {
+      var msg = "Player error: " + data.type + " - " + data.details;
       console.error(msg);
-      if(data.fatal) {
-        switch(data.type) {
+      // Auto-retry hanya jika autoRetry aktif
+      if (autoRetry && currentChannelUrl && currentChannelName) {
+              console.warn("Mencoba memutar ulang stream:", currentChannelName);
+              playStream(currentChannelUrl, currentChannelName);
+            };
+      if (data.fatal) {
+        switch (data.type) {
           case window.Hls.ErrorTypes.MEDIA_ERROR:
             handleMediaError(hls);
             break;
           case window.Hls.ErrorTypes.NETWORK_ERROR:
             console.error("network error ...");
             if (currentChannelUrl && currentChannelName) {
-                console.warn("Mencoba memutar ulang stream:", currentChannelName);
-                playStream(currentChannelUrl, currentChannelName);
+              console.warn("Mencoba memutar ulang stream:", currentChannelName);
+              playStream(currentChannelUrl, currentChannelName);
             }
             break;
           default:
@@ -169,7 +175,6 @@ function playStream(url, name = ''){
       }
     });
     
-
     //POSISI VIDEO AWAL
     hls.loadSource(url);
     hls.attachMedia(video);
@@ -192,10 +197,14 @@ function playStream(url, name = ''){
   infoChannel.textContent = 'Channel: ' + name;
   localStorage.setItem('lastChannelUrl', url);
   localStorage.setItem('lastChannelName', name);
+  
 }
 
+const timelineBar = document.getElementById('timelineBar');
+const timelineBuffered = document.getElementById('timelineBuffered');
+
 // ===================== KONTROL PLAYER =====================
-// Play/Pause video
+// Play/Pause video DIHAPUS
 playBtn.addEventListener('click', () => {
   if (video.paused) {
     video.play().then(() => {
@@ -212,7 +221,7 @@ playBtn.addEventListener('click', () => {
   }
 });
 
-// Mute/Unmute audio
+// Mute/Unmute audio DIHAPUS
 muteBtn.addEventListener('click', () => {
   if (video.volume > 0) {
     previousVolume = video.volume;
@@ -228,7 +237,7 @@ muteBtn.addEventListener('click', () => {
   }
 });
 
-// Kontrol volume slider
+// Kontrol volume slider DIHAPUS
 volumeSlider.addEventListener('input', () => {
   video.volume = parseFloat(volumeSlider.value);
   if (video.volume === 0) {
@@ -241,7 +250,7 @@ volumeSlider.addEventListener('input', () => {
   }
 });
 
-// Fullscreen
+// Fullscreen DIHAPUS
 fullscreenBtn.addEventListener('click', () => {
   if (document.fullscreenElement) {
     document.exitFullscreen();
@@ -250,7 +259,7 @@ fullscreenBtn.addEventListener('click', () => {
   }
 });
 
-// Picture-in-Picture (mini player)
+// Picture-in-Picture (mini player) DIHAPUS
 pipBtn.addEventListener('click', async () => {
   try {
     if (document.pictureInPictureElement) {
@@ -263,13 +272,13 @@ pipBtn.addEventListener('click', async () => {
   }
 });
 
-// Timeline bar (seek video)
+// Timeline bar (seek video) DIHAPUS
 timelineBar.addEventListener('click', e => {
   const percent = e.offsetX / timelineBar.clientWidth;
   if (video.duration) video.currentTime = percent * video.duration;
 });
 
-// Update timeline saat video berjalan
+// Update timeline saat video berjalan DIHAPUS
 video.addEventListener('timeupdate', () => {
   if (video.duration) {
     const buffered = video.buffered;
@@ -282,7 +291,7 @@ video.addEventListener('timeupdate', () => {
 });
 
 // ===================== KONTROL KEYBOARD =====================
-// Shortcut keyboard SPAPSI untuk player  
+// Shortcut keyboard untuk player  MUNGKIN DIPERTAHANKAN KARNA CONTROL DEFAULD HANYA AKTIF AREA VIDEO DI KLIK
 window.addEventListener('keydown', e => {
   const isTyping = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA';
   if (!isTyping) {
@@ -594,7 +603,20 @@ function renderReminders() {
     });
 }
 
-// Panggil renderReminders saat halaman dimuat
+// Panggil renderReminders saat halaman dimuat dan setiap 1 menit
 renderReminders();
 setInterval(renderReminders, 60000); // update tiap 1 menit
 // ================= END MODULAR REMINDER VIEW =================
+
+// ===================== AUTO RETRY STREAM =====================
+let autoRetry = false; // default: mati
+const autoRetryBtn = document.getElementById('autoRetryBtn');
+autoRetryBtn.addEventListener('click', () => {
+  autoRetry = !autoRetry;
+  autoRetryBtn.classList.toggle('auto-on', autoRetry);
+  autoRetryBtn.classList.toggle('auto-off', !autoRetry);
+});
+
+
+
+

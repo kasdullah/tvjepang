@@ -447,6 +447,17 @@ body {
   border-radius: 4px;
 }
 
+#autoRetryBtn.auto-on {
+  background: #ff4d4d;
+  color: #fff;
+  border-color: #ff4d4d;
+}
+#autoRetryBtn.auto-off {
+  background: #e0e0e0;
+  color: #888;
+  border-color: #bbb;
+}
+
 @media (max-width: 900px) {
   .main-flex {
     flex-direction: column;
@@ -513,4 +524,6 @@ body {
     box-shadow: none !important;
   }
 }
+
+
 
